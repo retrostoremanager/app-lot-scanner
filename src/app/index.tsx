@@ -1,98 +1,110 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useScanSession } from '@/state/useScanSession';
+import { Spacing } from '@/constants/theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
+// T031 (FR-001: single photo per lot scan session for v1).
+export default function CaptureScreen() {
+  const router = useRouter();
+  const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef<CameraView>(null);
+  const [capturing, setCapturing] = useState(false);
+  const { startScan, loading } = useScanSession();
+
+  const takePhoto = async () => {
+    if (!cameraRef.current) return;
+    setCapturing(true);
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
+      if (!photo) return;
+      await startScan({ uri: photo.uri, type: 'image/jpeg', name: 'lot.jpg' });
+      router.push('/review');
+    } finally {
+      setCapturing(false);
+    }
+  };
+
+  if (!permission) {
     return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
+      <SafeAreaView style={styles.center}>
+        <ActivityIndicator />
+      </SafeAreaView>
     );
   }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
 
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
+  if (!permission.granted) {
+    return (
+      <ThemedView style={styles.center}>
+        <SafeAreaView style={styles.permissionBox}>
+          <ThemedText type="subtitle" style={styles.centerText}>
+            Camera access needed
           </ThemedText>
-        </ThemedView>
+          <ThemedText type="default" themeColor="textSecondary" style={styles.centerText}>
+            Lot Scanner needs your camera to photograph a customer's game lot.
+          </ThemedText>
+          <Pressable onPress={requestPermission} style={styles.permissionButton}>
+            <ThemedText type="linkPrimary">
+              Grant camera access
+            </ThemedText>
+          </Pressable>
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
 
-        <ThemedText type="code" style={styles.code}>
-          get started
+  const busy = capturing || loading;
+
+  return (
+    <View style={styles.container}>
+      <CameraView ref={cameraRef} style={styles.camera} facing="back" />
+      <SafeAreaView style={styles.footer}>
+        <ThemedText type="small" themeColor="textSecondary" style={styles.hint}>
+          Fit the whole lot in frame, then capture.
         </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
+        <Pressable onPress={takePhoto} disabled={busy} style={styles.captureButton}>
+          {busy ? <ActivityIndicator color="#fff" /> : <View style={styles.captureButtonInner} />}
+        </Pressable>
       </SafeAreaView>
-    </ThemedView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
+  container: { flex: 1, backgroundColor: '#000' },
+  camera: { flex: 1 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  centerText: { textAlign: 'center', paddingHorizontal: Spacing.four },
+  permissionBox: { gap: Spacing.three, alignItems: 'center' },
+  permissionButton: { marginTop: Spacing.two },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     alignItems: 'center',
+    paddingBottom: Spacing.five,
     gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
   },
-  heroSection: {
-    alignItems: 'center',
+  hint: { color: '#fff' },
+  captureButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 4,
+    borderColor: '#fff',
     justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    alignItems: 'center',
   },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  captureButtonInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#fff',
   },
 });

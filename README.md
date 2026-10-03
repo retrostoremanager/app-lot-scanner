@@ -1,56 +1,61 @@
-# Welcome to your Expo app 👋
+# app-lot-scanner
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+React Native (Expo, Expo Router) app for AI game lot scanning. Implements
+[retrostoremanager/lot-scanner](https://github.com/retrostoremanager/lot-scanner)'s
+`specs/001-lot-scan-review/` user stories against `fn-lot-scanner`'s API.
 
-## Get started
+## Flow
 
-1. Install dependencies
+`src/app/index.tsx` (capture) → `src/app/review.tsx` (itemized review:
+select/deselect-all, per-card accept/correct/exclude, confirm/discard) →
+`src/app/item-correct.tsx` (catalog search, modal).
 
-   ```bash
-   npm install
-   ```
+A linear Stack, not tabs — there's nothing to switch between in this slice.
 
-2. Start the app
+## Structure
 
-   ```bash
-   npx expo start
-   ```
+- `src/api/` — `lotScanClient.ts` (typed client for every endpoint in
+  `contracts/lot-scan-api.md`), `types.ts`, `config.ts` (`EXPO_PUBLIC_API_BASE_URL`).
+- `src/state/useScanSession.ts` — polling while a scan is `processing`, surfaces
+  `failed` as a retryable error, persists the active session id to AsyncStorage so
+  backgrounding/closing the app doesn't lose the employee's place (FR-010).
+- `src/state/authToken.ts` — **placeholder**. Real employee login/SSO against
+  RetroStoreManager's auth is out of scope for this slice (the contract says "mechanism
+  TBD"); this just persists whatever Bearer token is set, the same way `fn-lot-scanner`
+  validates it (ported `fn-mystore` JWT logic).
+- `src/components/` — `ItemCard`, `SelectAllBar`, `UnidentifiedItemCard`.
 
-In the output, you'll find options to open the app in a
+## Known deviation from tasks.md
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+`tasks.md` sketches `app/` and `src/components/...` as sibling top-level dirs; the
+actual Expo CLI template puts the router directory under `src/app/` (with `src/` as the
+project root for everything, via the `@/` → `./src/*` path alias). Same architecture,
+just one directory level different from what was sketched during planning.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Local development
 
 ```bash
-npm run reset-project
+npm install
+npx expo install   # keeps native deps SDK-aligned after any changes
+npm start
+npm test
+npx tsc --noEmit
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Set `EXPO_PUBLIC_API_BASE_URL` (e.g. via `.env.local` or `eas.json` per environment) to
+point at a running `fn-lot-scanner` instance. For local dev without real employee auth
+wired up yet, `EXPO_PUBLIC_DEV_AUTH_TOKEN` is read as a fallback Bearer token.
 
-### Other setup steps
+## Testing notes
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Jest config lives in `package.json` (`jest-expo` preset). Two environment-specific
+things were needed beyond the defaults, both because `@testing-library/react-native`
+v14 and this Expo SDK 57 / React 19 stack are both very new:
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- `render()` and `renderHook()` are now **async** in RNTL v14 — every test call awaits
+  them.
+- `test-renderer` (not the older `react-test-renderer`) is RNTL v14's actual peer
+  dependency; it's a separate package and had to be installed explicitly.
+- AsyncStorage's official Jest mock (`@react-native-async-storage/async-storage/jest/async-storage-mock`)
+  is wired in via `moduleNameMapper`, not `setupFiles` — the mock file is a module
+  replacement, not a script.
