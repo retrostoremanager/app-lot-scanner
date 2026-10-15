@@ -1,31 +1,43 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
+import { Button } from '@/components/Button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 // The home screen -- no camera here, just an entry point into a scan. Capture is its
 // own route (/capture) so there's a real "nothing started yet" screen to land back on
 // after confirming or discarding a lot.
 export default function HomeScreen() {
   const router = useRouter();
+  const theme = useTheme();
 
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.content}>
+        <View style={[styles.mark, { backgroundColor: theme.tint }]}>
+          <Ionicons name="game-controller" size={36} color={theme.tintText} />
+        </View>
+
         <ThemedText type="title" style={styles.title}>
           Lot Scanner
         </ThemedText>
         <ThemedText type="default" themeColor="textSecondary" style={styles.subtitle}>
           Photograph a customer's game lot to get an instant AI-assisted quote.
         </ThemedText>
-        <Pressable onPress={() => router.push('/capture')} style={styles.startButton}>
-          <ThemedText type="linkPrimary" style={styles.startButtonText}>
-            Start new scan
-          </ThemedText>
-        </Pressable>
+
+        <View style={styles.action}>
+          <Button
+            label="Start new scan"
+            icon="camera"
+            fullWidth
+            onPress={() => router.push('/capture')}
+          />
+        </View>
       </SafeAreaView>
     </ThemedView>
   );
@@ -38,10 +50,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.five,
-    gap: Spacing.three,
+    gap: Spacing.two,
+  },
+  mark: {
+    width: 76,
+    height: 76,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.three,
   },
   title: { textAlign: 'center' },
-  subtitle: { textAlign: 'center' },
-  startButton: { marginTop: Spacing.three },
-  startButtonText: { fontSize: 18 },
+  subtitle: { textAlign: 'center', maxWidth: 320 },
+  action: { width: '100%', maxWidth: 320, marginTop: Spacing.four },
 });

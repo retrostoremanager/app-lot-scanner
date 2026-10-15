@@ -4,11 +4,13 @@ import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
+import { Button } from '@/components/Button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useScanSession } from '@/state/useScanSession';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 
 // T031 (FR-001: single photo per lot scan session for v1).
 export default function CaptureScreen() {
@@ -66,9 +68,9 @@ export default function CaptureScreen() {
 
   if (!permission) {
     return (
-      <SafeAreaView style={styles.center}>
+      <ThemedView style={styles.center}>
         <ActivityIndicator />
-      </SafeAreaView>
+      </ThemedView>
     );
   }
 
@@ -76,17 +78,16 @@ export default function CaptureScreen() {
     return (
       <ThemedView style={styles.center}>
         <SafeAreaView style={styles.permissionBox}>
+          <View style={styles.permissionIcon}>
+            <Ionicons name="camera-outline" size={32} color="#fff" />
+          </View>
           <ThemedText type="subtitle" style={styles.centerText}>
             Camera access needed
           </ThemedText>
           <ThemedText type="default" themeColor="textSecondary" style={styles.centerText}>
             Lot Scanner needs your camera to photograph a customer's game lot.
           </ThemedText>
-          <Pressable onPress={requestPermission} style={styles.permissionButton}>
-            <ThemedText type="linkPrimary">
-              Grant camera access
-            </ThemedText>
-          </Pressable>
+          <Button label="Grant camera access" icon="camera" onPress={requestPermission} />
         </SafeAreaView>
       </ThemedView>
     );
@@ -97,15 +98,24 @@ export default function CaptureScreen() {
   return (
     <View style={styles.container}>
       <CameraView ref={cameraRef} style={styles.camera} facing="back" />
+
+      <SafeAreaView style={styles.topBar} pointerEvents="box-none">
+        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={8}>
+          <Ionicons name="chevron-back" size={22} color="#fff" />
+        </Pressable>
+      </SafeAreaView>
+
+      <View style={styles.scrim} pointerEvents="none" />
       <SafeAreaView style={styles.footer}>
-        <ThemedText type="small" themeColor="textSecondary" style={styles.hint}>
-          Fit the whole lot in frame, then capture.
+        <ThemedText type="small" style={styles.hint}>
+          Fit the whole lot in frame, then capture
         </ThemedText>
         <Pressable onPress={takePhoto} disabled={busy} style={styles.captureButton}>
           {busy ? <ActivityIndicator color="#fff" /> : <View style={styles.captureButtonInner} />}
         </Pressable>
-        <Pressable onPress={pickFromLibrary} disabled={busy}>
-          <ThemedText type="link" style={styles.libraryLink}>
+        <Pressable onPress={pickFromLibrary} disabled={busy} style={styles.libraryButton}>
+          <Ionicons name="images-outline" size={16} color="#fff" />
+          <ThemedText type="small" style={styles.libraryLabel}>
             Choose from library
           </ThemedText>
         </Pressable>
@@ -119,8 +129,40 @@ const styles = StyleSheet.create({
   camera: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   centerText: { textAlign: 'center', paddingHorizontal: Spacing.four },
-  permissionBox: { gap: Spacing.three, alignItems: 'center' },
-  permissionButton: { marginTop: Spacing.two },
+  permissionBox: { gap: Spacing.three, alignItems: 'center', paddingHorizontal: Spacing.five },
+  permissionIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: Radius.lg,
+    backgroundColor: '#8A8F99',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.one,
+  },
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.two,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.pill,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scrim: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 260,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -130,21 +172,30 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.five,
     gap: Spacing.three,
   },
-  hint: { color: '#fff' },
-  libraryLink: { color: '#fff', textDecorationLine: 'underline' },
+  hint: { color: 'rgba(255,255,255,0.85)' },
   captureButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     borderWidth: 4,
     borderColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
   },
   captureButtonInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#fff',
   },
+  libraryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    paddingVertical: Spacing.one + 2,
+    paddingHorizontal: Spacing.three,
+    borderRadius: Radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+  },
+  libraryLabel: { color: '#fff', fontWeight: '600' },
 });

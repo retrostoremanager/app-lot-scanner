@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import type { ScannedItem } from '@/api/types';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export interface UnidentifiedItemCardProps {
@@ -21,7 +22,10 @@ export function UnidentifiedItemCard({ item, onPatch }: UnidentifiedItemCardProp
   const [price, setPrice] = useState('');
 
   const isExcluded = item.state === 'excluded';
-  const inputStyle = [styles.input, { color: theme.text, borderColor: theme.textSecondary }];
+  const inputStyle = [
+    styles.input,
+    { color: theme.text, borderColor: theme.border, backgroundColor: theme.background },
+  ];
 
   const saveManualEntry = () => {
     if (!title.trim()) return;
@@ -38,12 +42,13 @@ export function UnidentifiedItemCard({ item, onPatch }: UnidentifiedItemCardProp
 
   if (isExcluded) {
     return (
-      <ThemedView type="backgroundElement" style={[styles.card, styles.excluded]}>
+      <ThemedView type="backgroundElement" style={[styles.card, styles.excludedCard]}>
         <ThemedText type="small" themeColor="textSecondary">
           Excluded (unidentified item)
         </ThemedText>
-        <Pressable onPress={include}>
-          <ThemedText type="linkPrimary">
+        <Pressable onPress={include} style={styles.inlineAction}>
+          <Ionicons name="add-circle-outline" size={16} color={theme.tint} />
+          <ThemedText type="small" style={{ color: theme.tint, fontWeight: '600' }}>
             Include again
           </ThemedText>
         </Pressable>
@@ -52,30 +57,42 @@ export function UnidentifiedItemCard({ item, onPatch }: UnidentifiedItemCardProp
   }
 
   return (
-    <ThemedView type="backgroundElement" style={styles.card}>
-      <ThemedText type="smallBold">Not identified</ThemedText>
+    <ThemedView type="backgroundElement" style={[styles.card, { borderColor: theme.warning }]}>
+      <View style={styles.headerRow}>
+        <Ionicons name="help-circle-outline" size={18} color={theme.warning} />
+        <ThemedText type="smallBold">Not identified</ThemedText>
+      </View>
       <ThemedText type="small" themeColor="textSecondary">
         Enter details by hand, or exclude it from this lot.
       </ThemedText>
 
-      <TextInput style={inputStyle} placeholder="Title" value={title} onChangeText={setTitle} />
-      <TextInput style={inputStyle} placeholder="Platform (optional)" value={platform} onChangeText={setPlatform} />
+      <TextInput style={inputStyle} placeholder="Title" placeholderTextColor={theme.textSecondary} value={title} onChangeText={setTitle} />
+      <TextInput
+        style={inputStyle}
+        placeholder="Platform (optional)"
+        placeholderTextColor={theme.textSecondary}
+        value={platform}
+        onChangeText={setPlatform}
+      />
       <TextInput
         style={inputStyle}
         placeholder="Price (optional)"
+        placeholderTextColor={theme.textSecondary}
         value={price}
         onChangeText={setPrice}
         keyboardType="decimal-pad"
       />
 
-      <View style={styles.actionsRow}>
-        <Pressable onPress={saveManualEntry} style={styles.actionButton}>
-          <ThemedText type="linkPrimary">
+      <View style={[styles.actionsRow, { borderTopColor: theme.border }]}>
+        <Pressable onPress={saveManualEntry} style={styles.inlineAction}>
+          <Ionicons name="checkmark-circle-outline" size={16} color={theme.tint} />
+          <ThemedText type="small" style={{ color: theme.tint, fontWeight: '600' }}>
             Save
           </ThemedText>
         </Pressable>
-        <Pressable onPress={exclude} style={styles.actionButton}>
-          <ThemedText type="link" themeColor="textSecondary">
+        <Pressable onPress={exclude} style={styles.inlineAction}>
+          <Ionicons name="close-circle-outline" size={16} color={theme.textSecondary} />
+          <ThemedText type="small" themeColor="textSecondary">
             Exclude
           </ThemedText>
         </Pressable>
@@ -86,28 +103,40 @@ export function UnidentifiedItemCard({ item, onPatch }: UnidentifiedItemCardProp
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: Spacing.three,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
     padding: Spacing.three,
     gap: Spacing.two,
   },
-  excluded: {
+  excludedCard: {
     opacity: 0.5,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderWidth: 0,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
   },
   input: {
     borderWidth: 1,
-    borderRadius: Spacing.one,
+    borderRadius: Radius.sm,
     paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
+    paddingVertical: Spacing.two,
     fontSize: 16,
   },
   actionsRow: {
     flexDirection: 'row',
-    gap: Spacing.three,
+    gap: Spacing.four,
+    paddingTop: Spacing.two,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  actionButton: {
+  inlineAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.half,
     paddingVertical: Spacing.one,
   },
 });

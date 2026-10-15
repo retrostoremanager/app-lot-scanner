@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { LOW_CONFIDENCE_THRESHOLD, type ScannedItem } from '@/api/types';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export interface ItemCardProps {
@@ -39,26 +40,30 @@ export function ItemCard({ item, sessionId, onPatch }: ItemCardProps) {
 
   return (
     <ThemedView
-      type={isAccepted || isCorrected ? 'backgroundSelected' : 'backgroundElement'}
-      style={[styles.card, isExcluded && styles.excluded]}
+      type="backgroundElement"
+      style={[
+        styles.card,
+        { borderColor: isAccepted || isCorrected ? theme.tint : theme.border },
+        isExcluded && styles.excluded,
+      ]}
     >
       <View style={styles.headerRow}>
         <ThemedText type="smallBold" style={styles.title}>
           {title}
         </ThemedText>
         {isLowConfidence && (
-          <ThemedView type="background" style={styles.badge}>
-            <ThemedText type="small" themeColor="textSecondary">
+          <View style={[styles.badge, { backgroundColor: theme.warningSoft }]}>
+            <ThemedText type="small" style={{ color: theme.warning }}>
               needs a look
             </ThemedText>
-          </ThemedView>
+          </View>
         )}
         {isCorrected && (
-          <ThemedView type="background" style={styles.badge}>
-            <ThemedText type="small" themeColor="textSecondary">
+          <View style={[styles.badge, { backgroundColor: theme.backgroundSelected }]}>
+            <ThemedText type="small" style={{ color: theme.tint }}>
               corrected
             </ThemedText>
-          </ThemedView>
+          </View>
         )}
       </View>
 
@@ -69,7 +74,7 @@ export function ItemCard({ item, sessionId, onPatch }: ItemCardProps) {
           $
         </ThemedText>
         <TextInput
-          style={[styles.priceInput, { color: theme.text }]}
+          style={[styles.priceInput, { color: theme.text, borderBottomColor: theme.border }]}
           value={priceDraft}
           onChangeText={setPriceDraft}
           onBlur={commitPrice}
@@ -78,31 +83,39 @@ export function ItemCard({ item, sessionId, onPatch }: ItemCardProps) {
         />
       </View>
 
-      <View style={styles.actionsRow}>
+      <View style={[styles.actionsRow, { borderTopColor: theme.border }]}>
         {!isExcluded ? (
           <>
             <Pressable onPress={toggleAccept} style={styles.actionButton}>
-              <ThemedText type={isAccepted ? 'smallBold' : 'linkPrimary'}>
-                {isAccepted ? '✓ Accepted' : 'Accept'}
+              <Ionicons
+                name={isAccepted ? 'checkmark-circle' : 'checkmark-circle-outline'}
+                size={16}
+                color={isAccepted ? theme.success : theme.tint}
+              />
+              <ThemedText type="small" style={{ color: isAccepted ? theme.success : theme.tint, fontWeight: '600' }}>
+                {isAccepted ? 'Accepted' : 'Accept'}
               </ThemedText>
             </Pressable>
             <Pressable
               onPress={() => router.push({ pathname: '/item-correct', params: { sessionId, itemId: item.itemId } })}
               style={styles.actionButton}
             >
-              <ThemedText type="linkPrimary">
+              <Ionicons name="pencil-outline" size={15} color={theme.tint} />
+              <ThemedText type="small" style={{ color: theme.tint, fontWeight: '600' }}>
                 Correct
               </ThemedText>
             </Pressable>
             <Pressable onPress={exclude} style={styles.actionButton}>
-              <ThemedText type="link" themeColor="textSecondary">
+              <Ionicons name="close-circle-outline" size={16} color={theme.textSecondary} />
+              <ThemedText type="small" themeColor="textSecondary">
                 Exclude
               </ThemedText>
             </Pressable>
           </>
         ) : (
           <Pressable onPress={include} style={styles.actionButton}>
-            <ThemedText type="linkPrimary">
+            <Ionicons name="add-circle-outline" size={16} color={theme.tint} />
+            <ThemedText type="small" style={{ color: theme.tint, fontWeight: '600' }}>
               Include again
             </ThemedText>
           </Pressable>
@@ -114,7 +127,8 @@ export function ItemCard({ item, sessionId, onPatch }: ItemCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: Spacing.three,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
     padding: Spacing.three,
     gap: Spacing.one,
   },
@@ -130,7 +144,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   badge: {
-    borderRadius: Spacing.one,
+    borderRadius: Radius.sm,
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.half,
   },
@@ -140,16 +154,23 @@ const styles = StyleSheet.create({
     gap: Spacing.half,
   },
   priceInput: {
-    minWidth: 64,
-    fontSize: 16,
+    minWidth: 72,
+    fontSize: 18,
+    fontWeight: '600',
     paddingVertical: Spacing.half,
+    borderBottomWidth: 1,
   },
   actionsRow: {
     flexDirection: 'row',
-    gap: Spacing.three,
+    gap: Spacing.four,
     marginTop: Spacing.one,
+    paddingTop: Spacing.two,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.half,
     paddingVertical: Spacing.one,
   },
 });
