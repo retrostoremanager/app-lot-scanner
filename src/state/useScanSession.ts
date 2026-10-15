@@ -65,7 +65,13 @@ export function useScanSession() {
         await AsyncStorage.setItem(ACTIVE_SESSION_KEY, created.sessionId);
         await refresh(created.sessionId);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Could not start the scan.');
+        const message = err instanceof Error ? err.message : 'Could not start the scan.';
+        setError(message);
+        // Re-thrown so the caller (capture screen) doesn't navigate to a review screen
+        // for a session that was never actually created -- without this, a failed
+        // upload left the user stuck on review's "Identifying items..." forever, since
+        // no session id was ever stored for it to resume from.
+        throw new Error(message);
       } finally {
         setLoading(false);
       }

@@ -1,110 +1,47 @@
-import { useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { useScanSession } from '@/state/useScanSession';
 import { Spacing } from '@/constants/theme';
 
-// T031 (FR-001: single photo per lot scan session for v1).
-export default function CaptureScreen() {
+// The home screen -- no camera here, just an entry point into a scan. Capture is its
+// own route (/capture) so there's a real "nothing started yet" screen to land back on
+// after confirming or discarding a lot.
+export default function HomeScreen() {
   const router = useRouter();
-  const [permission, requestPermission] = useCameraPermissions();
-  const cameraRef = useRef<CameraView>(null);
-  const [capturing, setCapturing] = useState(false);
-  const { startScan, loading } = useScanSession();
-
-  const takePhoto = async () => {
-    if (!cameraRef.current) return;
-    setCapturing(true);
-    try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
-      if (!photo) return;
-      await startScan({ uri: photo.uri, type: 'image/jpeg', name: 'lot.jpg' });
-      router.push('/review');
-    } finally {
-      setCapturing(false);
-    }
-  };
-
-  if (!permission) {
-    return (
-      <SafeAreaView style={styles.center}>
-        <ActivityIndicator />
-      </SafeAreaView>
-    );
-  }
-
-  if (!permission.granted) {
-    return (
-      <ThemedView style={styles.center}>
-        <SafeAreaView style={styles.permissionBox}>
-          <ThemedText type="subtitle" style={styles.centerText}>
-            Camera access needed
-          </ThemedText>
-          <ThemedText type="default" themeColor="textSecondary" style={styles.centerText}>
-            Lot Scanner needs your camera to photograph a customer's game lot.
-          </ThemedText>
-          <Pressable onPress={requestPermission} style={styles.permissionButton}>
-            <ThemedText type="linkPrimary">
-              Grant camera access
-            </ThemedText>
-          </Pressable>
-        </SafeAreaView>
-      </ThemedView>
-    );
-  }
-
-  const busy = capturing || loading;
 
   return (
-    <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing="back" />
-      <SafeAreaView style={styles.footer}>
-        <ThemedText type="small" themeColor="textSecondary" style={styles.hint}>
-          Fit the whole lot in frame, then capture.
+    <ThemedView style={styles.container}>
+      <SafeAreaView style={styles.content}>
+        <ThemedText type="title" style={styles.title}>
+          Lot Scanner
         </ThemedText>
-        <Pressable onPress={takePhoto} disabled={busy} style={styles.captureButton}>
-          {busy ? <ActivityIndicator color="#fff" /> : <View style={styles.captureButtonInner} />}
+        <ThemedText type="default" themeColor="textSecondary" style={styles.subtitle}>
+          Photograph a customer's game lot to get an instant AI-assisted quote.
+        </ThemedText>
+        <Pressable onPress={() => router.push('/capture')} style={styles.startButton}>
+          <ThemedText type="linkPrimary" style={styles.startButtonText}>
+            Start new scan
+          </ThemedText>
         </Pressable>
       </SafeAreaView>
-    </View>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  camera: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  centerText: { textAlign: 'center', paddingHorizontal: Spacing.four },
-  permissionBox: { gap: Spacing.three, alignItems: 'center' },
-  permissionButton: { marginTop: Spacing.two },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    paddingBottom: Spacing.five,
-    gap: Spacing.three,
-  },
-  hint: { color: '#fff' },
-  captureButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 4,
-    borderColor: '#fff',
+  container: { flex: 1 },
+  content: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: Spacing.five,
+    gap: Spacing.three,
   },
-  captureButtonInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#fff',
-  },
+  title: { textAlign: 'center' },
+  subtitle: { textAlign: 'center' },
+  startButton: { marginTop: Spacing.three },
+  startButtonText: { fontSize: 18 },
 });

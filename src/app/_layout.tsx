@@ -5,8 +5,8 @@ import { useColorScheme } from 'react-native';
 
 SplashScreen.preventAutoHideAsync();
 
-// Capture -> Review -> (Correct) is a linear stack, not tabs -- there's nothing to
-// switch between in this MVP slice.
+// Home -> Capture -> Review -> (Correct) is a linear stack, not tabs -- there's nothing
+// to switch between in this MVP slice.
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
@@ -17,7 +17,8 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" options={{ title: 'Scan' }} />
+        <Stack.Screen name="index" options={{ title: 'Lot Scanner' }} />
+        <Stack.Screen name="capture" options={{ title: 'Scan' }} />
         <Stack.Screen name="review" options={{ title: 'Review' }} />
         <Stack.Screen name="item-correct" options={{ title: 'Correct', presentation: 'modal', headerShown: true }} />
       </Stack>

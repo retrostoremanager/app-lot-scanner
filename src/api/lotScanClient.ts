@@ -1,3 +1,4 @@
+import { File, UploadType } from 'expo-file-system';
 import { getAuthToken } from '@/state/authToken';
 import { API_BASE_URL } from './config';
 import type {
@@ -35,10 +36,24 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 // POST /lot-scans (contracts/lot-scan-api.md). T030.
 export async function createScan(photo: { uri: string; type: string; name: string }): Promise<CreateScanResponse> {
-  const form = new FormData();
-  // React Native's FormData accepts this { uri, type, name } shape directly.
-  form.append('photo', photo as unknown as Blob);
-  return request<CreateScanResponse>('/lot-scans', { method: 'POST', body: form });
+  // Neither the classic FormData.append({ uri, type, name }) object-literal shape nor
+  // fetch(uri).blob() reliably reads a local file:// URI on RN 0.86 -- the former throws
+  // ("Unsupported FormDataPart implementation"), and the latter can silently 404 against
+  // Expo's own ImagePicker cache path and upload the error body instead of the photo.
+  // expo-file-system's native upload reads the file at the native layer, bypassing both.
+  const token = await getAuthToken();
+  const result = await new File(photo.uri).upload(`${API_BASE_URL}/lot-scans`, {
+    httpMethod: 'POST',
+    uploadType: UploadType.MULTIPART,
+    fieldName: 'photo',
+    mimeType: photo.type,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+
+  if (result.status < 200 || result.status >= 300) {
+    throw new LotScanApiError(result.status, result.body || `HTTP ${result.status}`);
+  }
+  return JSON.parse(result.body) as CreateScanResponse;
 }
 
 // GET /lot-scans/{id}

@@ -38,6 +38,12 @@
         {
           "cameraPermission": "Lot Scanner needs camera access to photograph game lots for AI identification."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Lot Scanner needs photo library access to choose an existing photo of a game lot."
+        }
       ]
     ],
     "experiments": {
