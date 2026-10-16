@@ -76,6 +76,8 @@ export function ItemCard({ item, sessionId, onPatch }: ItemCardProps) {
         <TextInput
           style={[styles.priceInput, { color: theme.text, borderBottomColor: theme.border }]}
           value={priceDraft}
+          placeholder="Enter price"
+          placeholderTextColor={theme.textSecondary}
           onChangeText={setPriceDraft}
           onBlur={commitPrice}
           keyboardType="decimal-pad"
