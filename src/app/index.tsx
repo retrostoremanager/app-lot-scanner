@@ -19,6 +19,10 @@ export default function HomeScreen() {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.content}>
+        <View style={styles.accountButton}>
+          <Button label="Add-on" variant="ghost" icon="settings-outline" size="small" onPress={() => router.push('/addon')} />
+        </View>
+
         <View style={[styles.mark, { backgroundColor: theme.tint }]}>
           <Ionicons name="game-controller" size={36} color={theme.tintText} />
         </View>
@@ -52,6 +56,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.five,
     gap: Spacing.two,
   },
+  accountButton: { position: 'absolute', top: Spacing.three, right: Spacing.three },
   mark: {
     width: 76,
     height: 76,

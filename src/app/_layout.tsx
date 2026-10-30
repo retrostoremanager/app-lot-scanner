@@ -30,6 +30,7 @@ export default function RootLayout() {
             <Stack.Screen name="capture" options={{ title: 'Scan' }} />
             <Stack.Screen name="review" options={{ title: 'Review' }} />
             <Stack.Screen name="item-correct" options={{ title: 'Correct', presentation: 'modal' }} />
+            <Stack.Screen name="addon" options={{ title: 'Lot Scanner Add-on', presentation: 'modal' }} />
           </Stack>
         </AuthGate>
       </AuthProvider>
