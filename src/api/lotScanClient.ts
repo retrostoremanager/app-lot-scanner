@@ -1,5 +1,5 @@
 import { File, UploadType } from 'expo-file-system';
-import { getAuthToken } from '@/state/authToken';
+import { clearAuthSession, getAuthToken } from '@/state/authToken';
 import { API_BASE_URL } from './config';
 import type {
   CatalogCandidate,
@@ -27,6 +27,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
   if (!response.ok) {
+    // No refresh token exists for this JWT -- a 401 means the session is dead (expired or
+    // revoked), so clear it now rather than let every call site fail the same way. The root
+    // layout's auth-state subscription redirects to /login as soon as this fires.
+    if (response.status === 401) await clearAuthSession();
     const body = await response.text().catch(() => '');
     throw new LotScanApiError(response.status, body || response.statusText);
   }
@@ -51,6 +55,7 @@ export async function createScan(photo: { uri: string; type: string; name: strin
   });
 
   if (result.status < 200 || result.status >= 300) {
+    if (result.status === 401) await clearAuthSession();
     throw new LotScanApiError(result.status, result.body || `HTTP ${result.status}`);
   }
   return JSON.parse(result.body) as CreateScanResponse;
