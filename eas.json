@@ -1,0 +1,40 @@
+{
+  "cli": {
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "env": {
+          "EXPO_PUBLIC_API_BASE_URL": "https://lot-scanner-func-dev.azurewebsites.net/api",
+          "EXPO_PUBLIC_MYSTORE_API_BASE_URL": "https://mystore-func-dev.azurewebsites.net/api"
+        }
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "env": {
+          "EXPO_PUBLIC_API_BASE_URL": "https://lot-scanner-func-dev.azurewebsites.net/api",
+          "EXPO_PUBLIC_MYSTORE_API_BASE_URL": "https://mystore-func-dev.azurewebsites.net/api"
+        }
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle",
+        "env": {
+          "EXPO_PUBLIC_API_BASE_URL": "https://lot-scanner-func-prod.azurewebsites.net/api",
+          "EXPO_PUBLIC_MYSTORE_API_BASE_URL": "https://mystore-func-prod.azurewebsites.net/api"
+        }
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
