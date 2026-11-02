@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
+  addPhotoToScan,
   bulkUpdateItems,
   confirmScan,
   createScan,
@@ -79,6 +80,48 @@ export function useScanSession() {
     [refresh],
   );
 
+  // Opens an arbitrary existing session (e.g. from the history list), bypassing
+  // createScan entirely -- unlike startScan, this is for a session that already exists.
+  const openScan = useCallback(
+    async (sessionId: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await AsyncStorage.setItem(ACTIVE_SESSION_KEY, sessionId);
+        await refresh(sessionId);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refresh],
+  );
+
+  // Adds a photo to the current (in_review) session. Unlike startScan, the session's
+  // status never changes while an additional photo is being identified -- it was
+  // already in_review and stays there -- so there's no status transition to poll on.
+  // Just refetch a few times to pick up the new photo's items once ready.
+  const addPhoto = useCallback(
+    async (photo: { uri: string; type: string; name: string }) => {
+      if (!session) return;
+      setLoading(true);
+      setError(null);
+      try {
+        await addPhotoToScan(session.sessionId, photo);
+        await refresh(session.sessionId);
+        for (const delay of [2000, 4000, 8000]) {
+          setTimeout(() => refresh(session.sessionId), delay);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Could not add the photo.';
+        setError(message);
+        throw new Error(message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [session, refresh],
+  );
+
   const patchItem = useCallback(
     async (itemId: string, body: PatchItemRequest) => {
       if (!session) return;
@@ -124,7 +167,7 @@ export function useScanSession() {
     await AsyncStorage.removeItem(ACTIVE_SESSION_KEY);
   }, [stopPolling]);
 
-  return { session, loading, error, startScan, patchItem, bulkSetState, confirm, discard, startOver };
+  return { session, loading, error, startScan, openScan, addPhoto, patchItem, bulkSetState, confirm, discard, startOver };
 }
 
 export function isConflict(err: unknown): boolean {

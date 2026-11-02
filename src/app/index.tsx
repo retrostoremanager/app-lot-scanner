@@ -41,6 +41,15 @@ export default function HomeScreen() {
             fullWidth
             onPress={() => router.push('/capture')}
           />
+          <View style={styles.secondaryAction}>
+            <Button
+              label="History"
+              variant="secondary"
+              icon="time-outline"
+              fullWidth
+              onPress={() => router.push('/history')}
+            />
+          </View>
         </View>
       </SafeAreaView>
     </ThemedView>
@@ -68,4 +77,5 @@ const styles = StyleSheet.create({
   title: { textAlign: 'center' },
   subtitle: { textAlign: 'center', maxWidth: 320 },
   action: { width: '100%', maxWidth: 320, marginTop: Spacing.four },
+  secondaryAction: { marginTop: Spacing.two },
 });

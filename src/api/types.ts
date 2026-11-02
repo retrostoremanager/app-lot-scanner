@@ -52,6 +52,18 @@ export interface DiscardResponse {
   status: SessionStatus;
 }
 
+// For the history list -- not the full LotScanSession shape, which would be wasteful
+// for a list view (no nested items).
+export interface SessionSummary {
+  sessionId: string;
+  status: SessionStatus;
+  employeeId: string;
+  createdAt: string;
+  confirmedAt: string | null;
+  photoCount: number;
+  itemCount: number;
+}
+
 export interface CatalogCandidate {
   gameId: number;
   title: string;

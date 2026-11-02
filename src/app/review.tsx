@@ -65,6 +65,7 @@ export default function ReviewScreen() {
   if (!session) return null;
 
   const acceptedCount = session.items.filter((i) => i.state === 'accepted' || i.state === 'corrected').length;
+  const isInReview = session.status === 'in_review';
 
   const handleConfirm = async () => {
     setConfirming(true);
@@ -101,22 +102,26 @@ export default function ReviewScreen() {
       <SafeAreaView style={styles.container}>
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <ThemedText type="subtitle" style={styles.headerTitle}>
-            Review lot
+            {isInReview ? 'Review lot' : `Lot (${session.status})`}
           </ThemedText>
-          <Pressable onPress={handleDiscard} style={styles.discardButton} hitSlop={8}>
-            <Ionicons name="trash-outline" size={16} color={theme.danger} />
-            <ThemedText type="small" style={{ color: theme.danger }}>
-              Discard
-            </ThemedText>
-          </Pressable>
+          {isInReview && (
+            <Pressable onPress={handleDiscard} style={styles.discardButton} hitSlop={8}>
+              <Ionicons name="trash-outline" size={16} color={theme.danger} />
+              <ThemedText type="small" style={{ color: theme.danger }}>
+                Discard
+              </ThemedText>
+            </Pressable>
+          )}
         </View>
 
-        <SelectAllBar
-          totalCount={session.items.length}
-          acceptedCount={acceptedCount}
-          onSelectAll={() => bulkSetState('accepted')}
-          onDeselectAll={() => bulkSetState('pending')}
-        />
+        {isInReview && (
+          <SelectAllBar
+            totalCount={session.items.length}
+            acceptedCount={acceptedCount}
+            onSelectAll={() => bulkSetState('accepted')}
+            onDeselectAll={() => bulkSetState('pending')}
+          />
+        )}
 
         <FlatList
           data={session.items}
@@ -131,15 +136,26 @@ export default function ReviewScreen() {
           }
         />
 
-        <View style={[styles.footer, { borderTopColor: theme.border, backgroundColor: theme.background }]}>
-          <Button
-            label={confirming ? 'Confirming…' : `Confirm lot (${acceptedCount})`}
-            icon={confirming ? undefined : 'checkmark-circle'}
-            loading={confirming}
-            fullWidth
-            onPress={handleConfirm}
-          />
-        </View>
+        {isInReview && (
+          <View style={[styles.footer, { borderTopColor: theme.border, backgroundColor: theme.background }]}>
+            <Button
+              label="Add another photo"
+              variant="secondary"
+              icon="camera"
+              fullWidth
+              onPress={() => router.push('/capture?mode=add')}
+            />
+            <View style={styles.confirmButton}>
+              <Button
+                label={confirming ? 'Confirming…' : `Confirm lot (${acceptedCount})`}
+                icon={confirming ? undefined : 'checkmark-circle'}
+                loading={confirming}
+                fullWidth
+                onPress={handleConfirm}
+              />
+            </View>
+          </View>
+        )}
       </SafeAreaView>
     </ThemedView>
   );
@@ -176,4 +192,5 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.three,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
+  confirmButton: { marginTop: Spacing.two },
 });

@@ -9,6 +9,7 @@ import type {
   LotScanSession,
   PatchItemRequest,
   ScannedItem,
+  SessionSummary,
 } from './types';
 
 export class LotScanApiError extends Error {
@@ -64,6 +65,41 @@ export async function createScan(photo: { uri: string; type: string; name: strin
 // GET /lot-scans/{id}
 export function getScan(sessionId: string): Promise<LotScanSession> {
   return request<LotScanSession>(`/lot-scans/${sessionId}`);
+}
+
+// GET /lot-scans?status=&limit=&offset= -- store-scoped history, any employee at the
+// company sees all of it.
+export function listScans(status?: string, limit?: number, offset?: number): Promise<SessionSummary[]> {
+  const qs = new URLSearchParams({
+    ...(status ? { status } : {}),
+    ...(limit ? { limit: String(limit) } : {}),
+    ...(offset ? { offset: String(offset) } : {}),
+  });
+  const query = qs.toString();
+  return request<SessionSummary[]>(`/lot-scans${query ? `?${query}` : ''}`);
+}
+
+// POST /lot-scans/{id}/photos -- adds a photo to a scan that's still in_review. Follows
+// createScan's exact native-upload pattern (expo-file-system, not fetch/FormData) for the
+// same local file:// URI reliability reason documented there.
+export async function addPhotoToScan(
+  sessionId: string,
+  photo: { uri: string; type: string; name: string },
+): Promise<CreateScanResponse> {
+  const token = await getAuthToken();
+  const result = await new File(photo.uri).upload(`${API_BASE_URL}/lot-scans/${sessionId}/photos`, {
+    httpMethod: 'POST',
+    uploadType: UploadType.MULTIPART,
+    fieldName: 'photo',
+    mimeType: photo.type,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+
+  if (result.status < 200 || result.status >= 300) {
+    if (result.status === 401) await clearAuthSession();
+    throw new LotScanApiError(result.status, result.body || `HTTP ${result.status}`);
+  }
+  return JSON.parse(result.body) as CreateScanResponse;
 }
 
 // PATCH /lot-scans/{id}/items/{itemId}

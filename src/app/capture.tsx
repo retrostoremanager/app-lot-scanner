@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,13 +12,27 @@ import { ThemedView } from '@/components/themed-view';
 import { useScanSession } from '@/state/useScanSession';
 import { Radius, Spacing } from '@/constants/theme';
 
-// T031 (FR-001: single photo per lot scan session for v1).
+// T031 (FR-001: single photo per lot scan session for v1). ?mode=add is the one
+// exception -- adding a photo to an existing in_review session (from review.tsx)
+// instead of starting a brand new one.
 export default function CaptureScreen() {
   const router = useRouter();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isAddMode = mode === 'add';
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const [capturing, setCapturing] = useState(false);
-  const { startScan, loading } = useScanSession();
+  const { startScan, addPhoto, loading } = useScanSession();
+
+  const submitPhoto = async (photo: { uri: string; type: string; name: string }) => {
+    if (isAddMode) {
+      await addPhoto(photo);
+      router.back();
+    } else {
+      await startScan(photo);
+      router.push('/review');
+    }
+  };
 
   const takePhoto = async () => {
     if (!cameraRef.current) return;
@@ -26,12 +40,11 @@ export default function CaptureScreen() {
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
       if (!photo) return;
-      await startScan({ uri: photo.uri, type: 'image/jpeg', name: 'lot.jpg' });
-      router.push('/review');
+      await submitPhoto({ uri: photo.uri, type: 'image/jpeg', name: 'lot.jpg' });
     } catch (err) {
-      // startScan throws on failure specifically so we land here instead of
-      // navigating to a review screen with no session to show.
-      Alert.alert('Could not start scan', err instanceof Error ? err.message : 'Unknown error.');
+      // startScan/addPhoto throw on failure specifically so we land here instead of
+      // navigating away for a session/photo that was never actually created.
+      Alert.alert('Could not save photo', err instanceof Error ? err.message : 'Unknown error.');
     } finally {
       setCapturing(false);
     }
@@ -53,14 +66,13 @@ export default function CaptureScreen() {
     setCapturing(true);
     try {
       const asset = result.assets[0];
-      await startScan({
+      await submitPhoto({
         uri: asset.uri,
         type: asset.mimeType ?? 'image/jpeg',
         name: asset.fileName ?? 'lot.jpg',
       });
-      router.push('/review');
     } catch (err) {
-      Alert.alert('Could not start scan', err instanceof Error ? err.message : 'Unknown error.');
+      Alert.alert('Could not save photo', err instanceof Error ? err.message : 'Unknown error.');
     } finally {
       setCapturing(false);
     }
