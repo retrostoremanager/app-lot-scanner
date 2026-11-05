@@ -1,0 +1,13 @@
+{
+  "routes": [
+    { "route": "/login", "rewrite": "/login.html" },
+    { "route": "/capture", "rewrite": "/capture.html" },
+    { "route": "/review", "rewrite": "/review.html" },
+    { "route": "/history", "rewrite": "/history.html" },
+    { "route": "/item-correct", "rewrite": "/item-correct.html" },
+    { "route": "/addon", "rewrite": "/addon.html" }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html"
+  }
+}

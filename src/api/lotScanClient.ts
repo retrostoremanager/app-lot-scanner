@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { File, UploadType } from 'expo-file-system';
 import { clearAuthSession, getAuthToken } from '@/state/authToken';
 import { API_BASE_URL } from './config';
@@ -39,22 +40,48 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-// POST /lot-scans (contracts/lot-scan-api.md). T030.
-export async function createScan(photo: { uri: string; type: string; name: string }): Promise<CreateScanResponse> {
-  // Neither the classic FormData.append({ uri, type, name }) object-literal shape nor
-  // fetch(uri).blob() reliably reads a local file:// URI on RN 0.86 -- the former throws
-  // ("Unsupported FormDataPart implementation"), and the latter can silently 404 against
-  // Expo's own ImagePicker cache path and upload the error body instead of the photo.
-  // expo-file-system's native upload reads the file at the native layer, bypassing both.
+// Neither the classic FormData.append({ uri, type, name }) object-literal shape nor
+// fetch(uri).blob() reliably reads a local file:// URI on RN 0.86 -- the former throws
+// ("Unsupported FormDataPart implementation"), and the latter can silently 404 against
+// Expo's own ImagePicker cache path and upload the error body instead of the photo.
+// expo-file-system's native upload reads the file at the native layer, bypassing both.
+//
+// None of that applies on web: expo-file-system has no real web implementation at all
+// (its File.upload() is a no-op stub -- confirmed in node_modules, always resolves
+// { status: 0 }, never touches the network). But web's `photo.uri` is always a browser
+// blob:/data: URL (from expo-camera or <input type=file> under the hood), which
+// fetch().blob() reads perfectly reliably -- the RN failure mode above is specific to
+// native local-file:// paths, not browser object URLs. So web gets the fetch/FormData
+// path that was deliberately avoided for native.
+async function uploadPhoto(
+  url: string,
+  photo: { uri: string; type: string; name: string },
+): Promise<{ status: number; body: string }> {
   const token = await getAuthToken();
-  const result = await new File(photo.uri).upload(`${API_BASE_URL}/lot-scans`, {
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+  if (Platform.OS === 'web') {
+    const blob = await fetch(photo.uri).then((r) => r.blob());
+    const form = new FormData();
+    form.append('photo', blob, photo.name);
+    const response = await fetch(url, { method: 'POST', body: form, headers });
+    const body = await response.text().catch(() => '');
+    return { status: response.status, body };
+  }
+
+  const result = await new File(photo.uri).upload(url, {
     httpMethod: 'POST',
     uploadType: UploadType.MULTIPART,
     fieldName: 'photo',
     mimeType: photo.type,
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    headers,
   });
+  return { status: result.status, body: result.body };
+}
 
+// POST /lot-scans (contracts/lot-scan-api.md). T030.
+export async function createScan(photo: { uri: string; type: string; name: string }): Promise<CreateScanResponse> {
+  const result = await uploadPhoto(`${API_BASE_URL}/lot-scans`, photo);
   if (result.status < 200 || result.status >= 300) {
     if (result.status === 401) await clearAuthSession();
     throw new LotScanApiError(result.status, result.body || `HTTP ${result.status}`);
@@ -79,22 +106,12 @@ export function listScans(status?: string, limit?: number, offset?: number): Pro
   return request<SessionSummary[]>(`/lot-scans${query ? `?${query}` : ''}`);
 }
 
-// POST /lot-scans/{id}/photos -- adds a photo to a scan that's still in_review. Follows
-// createScan's exact native-upload pattern (expo-file-system, not fetch/FormData) for the
-// same local file:// URI reliability reason documented there.
+// POST /lot-scans/{id}/photos -- adds a photo to a scan that's still in_review.
 export async function addPhotoToScan(
   sessionId: string,
   photo: { uri: string; type: string; name: string },
 ): Promise<CreateScanResponse> {
-  const token = await getAuthToken();
-  const result = await new File(photo.uri).upload(`${API_BASE_URL}/lot-scans/${sessionId}/photos`, {
-    httpMethod: 'POST',
-    uploadType: UploadType.MULTIPART,
-    fieldName: 'photo',
-    mimeType: photo.type,
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
-
+  const result = await uploadPhoto(`${API_BASE_URL}/lot-scans/${sessionId}/photos`, photo);
   if (result.status < 200 || result.status >= 300) {
     if (result.status === 401) await clearAuthSession();
     throw new LotScanApiError(result.status, result.body || `HTTP ${result.status}`);

@@ -1,0 +1,58 @@
+name: Deploy Web (prod)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-web-prod
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Export web build
+        env:
+          EXPO_PUBLIC_API_BASE_URL: https://lot-scanner-func-prod.azurewebsites.net/api
+          EXPO_PUBLIC_MYSTORE_API_BASE_URL: https://mystore-func-prod.azurewebsites.net/api
+        run: npx expo export --platform web
+
+      - name: Copy routing config into export output
+        run: cp staticwebapp.config.json dist/
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Static Web App
+        run: |
+          SWA_NAME="lot-scanner-web-prod"
+          SWA_RG=$(az staticwebapp list \
+            --query "[?name=='${SWA_NAME}'].resourceGroup | [0]" -o tsv)
+          if [ -z "$SWA_RG" ]; then
+            echo "ERROR: Static Web App ${SWA_NAME} not visible to this service principal." >&2
+            exit 1
+          fi
+          SWA_TOKEN=$(az staticwebapp secrets list \
+            --name "$SWA_NAME" --resource-group "$SWA_RG" \
+            --query "properties.apiKey" -o tsv)
+          npx -y @azure/static-web-apps-cli@latest deploy ./dist \
+            --deployment-token "$SWA_TOKEN" \
+            --env production
+
+      - name: Deployment Complete
+        run: echo "Lot Scanner web (prod) deployed -- https://scanner.retrostoremanager.com/"
