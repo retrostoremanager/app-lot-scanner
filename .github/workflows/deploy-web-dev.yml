@@ -43,6 +43,10 @@ jobs:
 
       - name: Deploy to Azure Static Web App
         run: |
+          echo "Logged in as:"
+          az account show -o jsonc
+          echo "Static Web Apps visible to this identity:"
+          az staticwebapp list -o table
           SWA_NAME="lot-scanner-web-dev"
           SWA_RG=$(az staticwebapp list \
             --query "[?name=='${SWA_NAME}'].resourceGroup | [0]" -o tsv)
