@@ -5,3 +5,7 @@ export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://loca
 // Login and the Lot Scanner add-on live on fn-mystore, not fn-lot-scanner -- a separate
 // base URL since this app talks to both backends.
 export const MYSTORE_API_BASE_URL = process.env.EXPO_PUBLIC_MYSTORE_API_BASE_URL ?? 'http://localhost:7072/api';
+
+// web-mystore's hosted site -- for linking out to its signup page (there's no "create a
+// store" flow in this app; it belongs to RSM proper, same as login already does).
+export const MYSTORE_WEB_URL = process.env.EXPO_PUBLIC_MYSTORE_WEB_URL ?? 'https://dev.retrostoremanager.com';

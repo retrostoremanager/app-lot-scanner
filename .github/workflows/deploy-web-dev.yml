@@ -31,6 +31,7 @@ jobs:
         env:
           EXPO_PUBLIC_API_BASE_URL: https://lot-scanner-func-dev.azurewebsites.net/api
           EXPO_PUBLIC_MYSTORE_API_BASE_URL: https://mystore-func-dev.azurewebsites.net/api
+          EXPO_PUBLIC_MYSTORE_WEB_URL: https://dev.retrostoremanager.com
         run: npx expo export --platform web
 
       - name: Copy routing config into export output

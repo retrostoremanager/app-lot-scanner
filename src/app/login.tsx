@@ -1,16 +1,30 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Platform, StyleSheet, TextInput, View } from 'react-native';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '@/components/Button';
+import { ExternalLink } from '@/components/external-link';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/state/AuthContext';
 import { AccountApiError } from '@/api/accountClient';
+import { MYSTORE_WEB_URL } from '@/api/config';
+
+// Sign-up (new company + Stripe subscription) belongs to RSM proper, not this app -- link
+// out to web-mystore's real signup page rather than duplicating that flow here. returnTo
+// only makes sense on web (there's no page to redirect back to on native); on return,
+// VerifyEmailPage appends ?slug=<new slug> so login can prefill the Store ID field below.
+function buildSignupHref(): Href & string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const returnTo = `${window.location.origin}/login`;
+    return `${MYSTORE_WEB_URL}/signup?returnTo=${encodeURIComponent(returnTo)}` as Href & string;
+  }
+  return `${MYSTORE_WEB_URL}/signup` as Href & string;
+}
 
 // Login is slug-scoped on fn-mystore (not a global email/password lookup), so employees
 // need their store's URL slug too -- there's no URL path here to read it from like the
@@ -19,8 +33,9 @@ export default function LoginScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { login } = useAuth();
+  const { slug: slugParam } = useLocalSearchParams<{ slug?: string }>();
 
-  const [slug, setSlug] = useState('');
+  const [slug, setSlug] = useState(slugParam ?? '');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +111,17 @@ export default function LoginScreen() {
           )}
 
           <Button label="Sign in" fullWidth loading={submitting} disabled={!canSubmit} onPress={handleSubmit} />
+
+          <View style={styles.signupRow}>
+            <ThemedText type="small" themeColor="textSecondary">
+              Don&apos;t have an account?{' '}
+            </ThemedText>
+            <ExternalLink href={buildSignupHref()}>
+              <ThemedText type="smallBold" themeColor="tint">
+                Sign up
+              </ThemedText>
+            </ExternalLink>
+          </View>
         </View>
       </SafeAreaView>
     </ThemedView>
@@ -130,4 +156,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   error: { textAlign: 'center' },
+  signupRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginTop: Spacing.two,
+  },
 });
