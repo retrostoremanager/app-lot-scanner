@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, StyleSheet, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,13 +18,12 @@ import { MYSTORE_WEB_URL } from '@/api/config';
 // out to web-mystore's real signup page rather than duplicating that flow here. returnTo
 // only makes sense on web (there's no page to redirect back to on native); on return,
 // VerifyEmailPage appends ?slug=<new slug> so login can prefill the Store ID field below.
-function buildSignupHref(): Href & string {
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    const returnTo = `${window.location.origin}/login`;
-    return `${MYSTORE_WEB_URL}/signup?returnTo=${encodeURIComponent(returnTo)}` as Href & string;
-  }
-  return `${MYSTORE_WEB_URL}/signup` as Href & string;
-}
+//
+// This route is static-exported (prerendered to HTML in Node, where `window` doesn't
+// exist), so the real returnTo can only be computed client-side after mount -- not inline
+// during render, or the prerendered href (sans returnTo) gets baked into the static HTML
+// and never updates on hydration.
+const DEFAULT_SIGNUP_HREF = `${MYSTORE_WEB_URL}/signup` as Href & string;
 
 // Login is slug-scoped on fn-mystore (not a global email/password lookup), so employees
 // need their store's URL slug too -- there's no URL path here to read it from like the
@@ -40,6 +39,13 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [signupHref, setSignupHref] = useState<Href & string>(DEFAULT_SIGNUP_HREF);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const returnTo = `${window.location.origin}/login`;
+    setSignupHref(`${MYSTORE_WEB_URL}/signup?returnTo=${encodeURIComponent(returnTo)}` as Href & string);
+  }, []);
 
   const canSubmit = slug.trim().length > 0 && email.trim().length > 0 && password.length > 0 && !submitting;
 
@@ -116,7 +122,7 @@ export default function LoginScreen() {
             <ThemedText type="small" themeColor="textSecondary">
               Don&apos;t have an account?{' '}
             </ThemedText>
-            <ExternalLink href={buildSignupHref()}>
+            <ExternalLink href={signupHref}>
               <ThemedText type="smallBold" themeColor="tint">
                 Sign up
               </ThemedText>
