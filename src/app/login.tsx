@@ -12,7 +12,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/state/AuthContext';
 import { AccountApiError } from '@/api/accountClient';
-import { MYSTORE_WEB_URL } from '@/api/config';
+import { computeSignupHref, DEFAULT_SIGNUP_HREF } from '@/api/signupLink';
 
 // Sign-up (new company + Stripe subscription) belongs to RSM proper, not this app -- link
 // out to web-mystore's real signup page rather than duplicating that flow here. returnTo
@@ -22,8 +22,8 @@ import { MYSTORE_WEB_URL } from '@/api/config';
 // This route is static-exported (prerendered to HTML in Node, where `window` doesn't
 // exist), so the real returnTo can only be computed client-side after mount -- not inline
 // during render, or the prerendered href (sans returnTo) gets baked into the static HTML
-// and never updates on hydration.
-const DEFAULT_SIGNUP_HREF = `${MYSTORE_WEB_URL}/signup` as Href & string;
+// and never updates on hydration. computeSignupHref lives in api/signupLink.ts (not here)
+// so it's unit-testable without pulling in expo-router/react-native just to check a URL.
 
 // Login is slug-scoped on fn-mystore (not a global email/password lookup), so employees
 // need their store's URL slug too -- there's no URL path here to read it from like the
@@ -39,12 +39,11 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [signupHref, setSignupHref] = useState<Href & string>(DEFAULT_SIGNUP_HREF);
+  const [signupHref, setSignupHref] = useState(DEFAULT_SIGNUP_HREF as Href & string);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-    const returnTo = `${window.location.origin}/login`;
-    setSignupHref(`${MYSTORE_WEB_URL}/signup?returnTo=${encodeURIComponent(returnTo)}` as Href & string);
+    setSignupHref(computeSignupHref(true, window.location.origin) as Href & string);
   }, []);
 
   const canSubmit = slug.trim().length > 0 && email.trim().length > 0 && password.length > 0 && !submitting;
